@@ -27,5 +27,17 @@ const createChat = async (req, res) => {
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 };
+const fetchChats = async (req,res) => {
+  const userId =req.user._id;
+  try{
+let chats = await Chat.find({members:{ $in: [userId] }})
+.populate('member', '-password')
+.populate('LastMessage')
+.sort({ updatedAt: -1 });
+res.status(200).json(chats);
 
-module.exports = { createChat };
+  }catch(err){
+    res.status(500).json({message: 'server error', error: err.message});
+  }
+}
+module.exports = { createChat,fetchChats, };

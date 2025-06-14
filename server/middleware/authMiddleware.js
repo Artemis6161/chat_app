@@ -19,7 +19,7 @@ const protect = async (req, res, next) => {
       // Find user by ID (exclude password)
       req.user = await User.findById(decoded.id).select('-password');
 
-      next(); // Allow to proceed
+     return next(); 
     } catch (error) {
       console.error('Token failed:', error);
       res.status(401).json({ message: 'Not authorized, token failed' });

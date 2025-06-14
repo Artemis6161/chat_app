@@ -24,4 +24,16 @@ if(!content || !chatId){
     }
 
 }
-module.exports = { sendMessage };
+const getMessages = async (req, res) => {
+    const {chatId} = req.params;
+    try{
+        const messages = await messages.find({ chat:chatId})
+            .populate("sender", "username email")
+            .populate("chat");
+            res.status(200).json(messages);
+
+    } catch(error){
+        res.status(500).json({message: "server error", error: error.message});
+    }
+}
+module.exports = { sendMessage,getMessages };

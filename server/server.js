@@ -7,6 +7,9 @@ const http = require('http');
 const { Server } = require('socket.io');
 const app = express();
 connectDB();
+const Message = require('./models/Message');
+const Chat = require('./models/Chat');
+
 // Middleware
 app.use(cors()); 
 app.use(express.json()); 
@@ -29,7 +32,7 @@ const server = http.createServer(app);
 //  Initialize socket.io with CORS
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:3000", // Your frontend URL
+    origin: "http://localhost:5173", // Your frontend URL
     methods: ["GET", "POST"]
   }
 });
@@ -44,22 +47,40 @@ io.on('connection', (socket) => {
     console.log(`User joined room: ${roomId}`);
   });
 
-  // Handle new message
-  socket.on('new message', (messageData) => {
-    const chat = messageData.chat;
-    if (!chat?.members) return;
+ 
+socket.on('new message', async (messageData) => {
+  try {
+    const { content, chat } = messageData;
+    if (!chat?._id || !messageData.sender?._id) return;
 
-    chat.members.forEach((user) => {
-      if (user._id !== messageData.sender._id) {
-        socket.to(user._id).emit('message received', messageData);
-      }
+    // Save message to DB
+    const newMessage = await Message.create({
+      sender: messageData.sender._id,
+      content,
+      chat: chat._id,
     });
-  });
+
+    const populatedMessage = await Message.findById(newMessage._id)
+      .populate("sender", "username email")
+      .populate({
+        path: "chat",
+        populate: { path: "members", select: "username email" },
+      });
+
+    // Update last message in Chat
+    await Chat.findByIdAndUpdate(chat._id, { lastMessage: populatedMessage });
+
+    // Emit to room
+    io.to(chat._id).emit('message received', populatedMessage);
+  } catch (err) {
+    console.error("Error in socket new message:", err.message);
+  }
+});
 
   socket.on('disconnect', () => {
     console.log('User disconnected');
   });
-});
+})
 
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {

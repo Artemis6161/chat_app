@@ -27,17 +27,18 @@ const createChat = async (req, res) => {
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 };
-const fetchChats = async (req,res) => {
-  const userId =req.user._id;
-  try{
-let chats = await Chat.find({members:{ $in: [userId] }})
-.populate('member', '-password')
-.populate('LastMessage')
-.sort({ updatedAt: -1 });
-res.status(200).json(chats);
+const fetchChats = async (req, res) => {
+  const userId = req.user._id;
+  try {
+    let chats = await Chat.find({ members: { $in: [userId] } })
+      .populate('members', '-password') // ✅ correct field name
+      .populate('lastMessage')          // Make sure your schema has this field
+      .sort({ updatedAt: -1 });
 
-  }catch(err){
-    res.status(500).json({message: 'server error', error: err.message});
+    res.status(200).json(chats);
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err.message });
   }
-}
+};
+
 module.exports = { createChat,fetchChats, };
